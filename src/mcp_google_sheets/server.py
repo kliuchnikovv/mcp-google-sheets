@@ -26,6 +26,12 @@ import google.auth
 
 # Constants
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+# OAuth Access Token (for Flexus integration)
+GOOGLE_ACCESS_TOKEN = os.environ.get('GOOGLE_ACCESS_TOKEN')
+GOOGLE_REFRESH_TOKEN = os.environ.get('GOOGLE_REFRESH_TOKEN')
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+# Service Account and OAuth file-based credentials
 CREDENTIALS_CONFIG = os.environ.get('CREDENTIALS_CONFIG')
 TOKEN_PATH = os.environ.get('TOKEN_PATH', 'token.json')
 CREDENTIALS_PATH = os.environ.get('CREDENTIALS_PATH', 'credentials.json')
@@ -46,10 +52,29 @@ async def spreadsheet_lifespan(server: FastMCP) -> AsyncIterator[SpreadsheetCont
     # Authenticate and build the service
     creds = None
 
-    if CREDENTIALS_CONFIG:
+    # Priority 1: Direct OAuth access token (for Flexus integration)
+    if GOOGLE_ACCESS_TOKEN:
+        try:
+            print("Using OAuth access token from GOOGLE_ACCESS_TOKEN")
+            creds = Credentials(
+                token=GOOGLE_ACCESS_TOKEN,
+                refresh_token=GOOGLE_REFRESH_TOKEN,  # Optional
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=GOOGLE_CLIENT_ID,
+                client_secret=GOOGLE_CLIENT_SECRET,
+                scopes=SCOPES
+            )
+            # Note: Token refresh is handled externally by Flexus, not by this server
+            print("OAuth access token configured successfully")
+        except Exception as e:
+            print(f"Error using OAuth access token: {e}")
+            creds = None
+    
+    # Priority 2: Base64-encoded credentials (Service Account or OAuth)
+    if not creds and CREDENTIALS_CONFIG:
         creds = service_account.Credentials.from_service_account_info(json.loads(base64.b64decode(CREDENTIALS_CONFIG)), scopes=SCOPES)
     
-    # Check for explicit service account authentication first (custom SERVICE_ACCOUNT_PATH)
+    # Priority 3: Service Account file path (custom SERVICE_ACCOUNT_PATH)
     if not creds and SERVICE_ACCOUNT_PATH and os.path.exists(SERVICE_ACCOUNT_PATH):
         try:
             # Regular service account authentication
@@ -63,7 +88,7 @@ async def spreadsheet_lifespan(server: FastMCP) -> AsyncIterator[SpreadsheetCont
             print(f"Error using service account authentication: {e}")
             creds = None
     
-    # Fall back to OAuth flow if service account auth failed or not configured
+    # Priority 4: OAuth file-based flow (interactive, requires CREDENTIALS_PATH)
     if not creds:
         print("Trying OAuth authentication flow")
         if os.path.exists(TOKEN_PATH):
@@ -99,7 +124,7 @@ async def spreadsheet_lifespan(server: FastMCP) -> AsyncIterator[SpreadsheetCont
                     print(f"Error with OAuth flow: {e}")
                     creds = None
     
-    # Try Application Default Credentials if no creds thus far
+    # Priority 5: Application Default Credentials (ADC) - automatic fallback
     # This will automatically check GOOGLE_APPLICATION_CREDENTIALS, gcloud auth, and metadata service
     if not creds:
         try:

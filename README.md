@@ -274,15 +274,20 @@ _Refer to the [ID Reference Guide](#-id-reference-guide) for more information ab
 
 The server checks for credentials in this order:
 
-1.  `CREDENTIALS_CONFIG` (Base64 content)
-2.  `SERVICE_ACCOUNT_PATH` (Path to Service Account JSON)
-3.  `CREDENTIALS_PATH` (Path to OAuth JSON) - triggers interactive flow if token is missing/expired
-4.  **Application Default Credentials (ADC)** - automatic fallback
+1.  `GOOGLE_ACCESS_TOKEN` (OAuth access token)
+2.  `CREDENTIALS_CONFIG` (Base64 content)
+3.  `SERVICE_ACCOUNT_PATH` (Path to Service Account JSON)
+4.  `CREDENTIALS_PATH` (Path to OAuth JSON) - triggers interactive flow if token is missing/expired
+5.  **Application Default Credentials (ADC)** - automatic fallback
 
 **Environment Variable Summary:**
 
 | Variable                         | Method(s)                   | Description                                                      | Default            |
 |:---------------------------------|:----------------------------|:-----------------------------------------------------------------|:-------------------|
+| `GOOGLE_ACCESS_TOKEN`            | OAuth Access Token          | OAuth access token.                                              | -                  |
+| `GOOGLE_REFRESH_TOKEN`           | OAuth Access Token          | OAuth refresh token (optional, for self-managed refresh).        | -                  |
+| `GOOGLE_CLIENT_ID`               | OAuth Access Token          | OAuth client ID (optional, for token refresh).                   | -                  |
+| `GOOGLE_CLIENT_SECRET`           | OAuth Access Token          | OAuth client secret (optional, for token refresh).               | -                  |
 | `SERVICE_ACCOUNT_PATH`           | Service Account             | Path to the Service Account JSON key file (MCP server specific). | -                  |
 | `GOOGLE_APPLICATION_CREDENTIALS` | ADC                         | Path to service account key (Google's standard variable).        | -                  |
 | `DRIVE_FOLDER_ID`                | Service Account             | ID of the Google Drive folder shared with the Service Account.   | -                  |
